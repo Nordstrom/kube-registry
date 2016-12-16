@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    app: registry
+  name: nord-ca-certs
+  namespace: registry
+data:
+  root-sha256.pem: |
+    {{{ file "../nord-ca/root-sha256.pem" | indent "    " }}}
+  root-sha1.pem: |
+    {{{ file "../nord-ca/root-sha1.pem" | indent "    " }}}
+  issuing-319.pem: |
+    {{{ file "../nord-ca/issuing-319.pem" | indent "    " }}}
+  issuing-864.pem: |
+    {{{ file "../nord-ca/issuing-864.pem" | indent "    " }}}
+  issuing-den.pem: |
+    {{{ file "../nord-ca/issuing-den.pem" | indent "    " }}}
+  issuing-sea.pem: |
+    {{{ file "../nord-ca/issuing-sea.pem" | indent "    " }}}
