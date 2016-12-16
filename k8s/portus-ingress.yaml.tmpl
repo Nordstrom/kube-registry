@@ -1,0 +1,22 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: portus
+  namespace: registry
+  labels:
+    app: portus
+  annotations:
+    ingress.kubernetes.io/secure-backends: "true"
+spec:
+  tls:
+  - secretName: portus.registry.platform.prod.aws.cloud.nordstrom.net.tls
+    hosts:
+    - portus.registry.platform.prod.aws.cloud.nordstrom.net
+  rules:
+  - host: portus.registry.platform.prod.aws.cloud.nordstrom.net
+    http:
+      paths:
+      - backend:
+          serviceName: portus
+          servicePort: 443
+        path: /

@@ -1,0 +1,61 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    app: docker
+  name: docker
+  namespace: registry
+data:
+  config.yml: |
+    version: 0.1
+    auth:
+      token:
+        realm: https://portus.registry.platform.prod.aws.cloud.nordstrom.net/v2/token
+        service: docker.registry.platform.prod.aws.cloud.nordstrom.net
+        issuer: portus.registry.platform.prod.aws.cloud.nordstrom.net
+        rootcertbundle: /etc/ssl/portus/tls.crt
+    debug:
+      addr: :5001
+    health:
+      storagedriver:
+        enabled: true
+        interval: 10s
+        threshold: 3
+    http:
+      addr: :5000
+      host: docker.registry.platform.prod.aws.cloud.nordstrom.net
+      tls:
+        certificate: /etc/ssl/docker/tls.crt
+        key: /etc/ssl/docker/tls.key
+      headers:
+        X-Content-Type-Options: [nosniff]
+    log:
+      level: info
+      fields:
+        service: registry
+    maintenance:
+      uploadpurging:
+        enabled: true
+        age: 168h
+        interval: 24h
+        dryrun: false
+      readonly:
+        enabled: false
+    notifications:
+      endpoints:
+      - name: portus
+        url: https://portus.registry.svc.cluster.local/v2/webhooks/events
+        timeout: 3000ms
+        threshold: 5
+        backoff: 1s
+    storage:
+      s3:
+        region: us-west-2
+        bucket: a0098-team
+        rootdirectory: /applications/registry/data
+      redirect:
+        disable: true
+      delete:
+        enabled: true
+      cache:
+        blobdescriptor: inmemory

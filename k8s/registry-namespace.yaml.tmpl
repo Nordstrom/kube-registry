@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: registry
+  annotations:
+    contact-email: techk8s@nordstrom.com
+    cost-center: 45301
+    cloud-team-id: a0098
+    kube2iam.beta.nordstrom.net/allowed-roles: |
+      ${kube2iam_allowed_role_list?:"kube2iam_allowed_role_list must be set"}

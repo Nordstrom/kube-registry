@@ -1,0 +1,22 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: docker
+  namespace: registry
+  labels:
+    app: docker
+  annotations:
+    ingress.kubernetes.io/secure-backends: "true"
+spec:
+  tls:
+  - secretName: docker.registry.platform.prod.aws.cloud.nordstrom.net.tls
+    hosts:
+    - docker.registry.platform.prod.aws.cloud.nordstrom.net
+  rules:
+  - host: docker.registry.platform.prod.aws.cloud.nordstrom.net
+    http:
+      paths:
+      - backend:
+          serviceName: docker
+          servicePort: 443
+        path: /

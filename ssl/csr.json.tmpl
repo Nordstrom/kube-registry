@@ -1,0 +1,17 @@
+{
+  "CN": "${cert_name?:\"cert_name must be set\"}",
+  "hosts": ${hosts?:"hosts must be set"},
+  "key": {
+    "algo": "rsa",
+    "size": 4096
+  },
+  "names": [
+    {
+      "C": "US",
+      "L": "Seattle",
+      "O": "Nordstrom",
+      "OU": "techk8s@nordstrom.com",
+      "ST": "Washington"
+    }
+  ]
+}

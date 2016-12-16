@@ -1,0 +1,116 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    app: portus
+  name: portus
+  namespace: registry
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: portus
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: portus
+    spec:
+      containers:
+      - name: portus
+        image: quay.io/nordstrom/portus:2.1.1-6
+        args:
+        - --bind=ssl://0.0.0.0:9292?key=\$(PUMA_TLS_KEY_PATH)&cert=\$(PUMA_TLS_CERT_BUNDLE_PATH)
+        - --environment=production
+        - --debug
+        - config.ru
+        env:
+        - name: RAILS_ENV
+          value: production
+        - name: REGISTRY_SSL_ENABLED
+          value: "true"
+        - name: REGISTRY_HOSTNAME
+          value: docker.registry.platform.prod.aws.cloud.nordstrom.net
+        - name: PORTUS_DEBUG
+          value: "true"
+        - name: PORTUS_LOCAL_CONFIG_PATH
+          value: /etc/portus/config/local/config-local.yml
+        - name: PORTUS_PRODUCTION_HOST
+          valueFrom:
+            secretKeyRef:
+              name: portus-db
+              key: hostname
+        - name: PORTUS_PRODUCTION_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: portus-db
+              key: username
+        - name: PORTUS_PRODUCTION_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: portus-db
+              key: password
+        - name: PORTUS_PRODUCTION_DATABASE
+          valueFrom:
+            secretKeyRef:
+              name: portus-db
+              key: db-name
+        - name: PORTUS_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: portus-app
+              key: password
+        - name: PORTUS_SECRET_KEY_BASE
+          valueFrom:
+            secretKeyRef:
+              name: portus-app
+              key: secret-key-base
+        - name: PORTUS_LDAP_AUTHENTICATION_ENABLED
+          value: "true"
+        - name: PORTUS_LDAP_AUTHENTICATION_BIND_DN
+          valueFrom:
+            secretKeyRef:
+              name: ldap-search-creds
+              key: bind-dn
+        - name: PORTUS_LDAP_AUTHENTICATION_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: ldap-search-creds
+              key: bind-password
+        - name: PORTUS_KEY_PATH
+          value: /etc/ssl/portus/tls.key
+        - name: PUMA_TLS_KEY_PATH
+          value: /etc/ssl/portus/tls.key
+        - name: PUMA_TLS_CERT_BUNDLE_PATH
+          value: /etc/ssl/portus/tls.crt
+        ports:
+        - containerPort: 9292
+          protocol: TCP
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        volumeMounts:
+        - mountPath: /etc/ssl/portus
+          name: tls-cert
+          readOnly: true
+        - mountPath: /etc/portus/config/local
+          name: config
+          readOnly: true
+      securityContext:
+        fsGroup: 1000
+      volumes:
+      - name: tls-cert
+        secret:
+          defaultMode: 440
+          secretName: portus.registry.platform.prod.aws.cloud.nordstrom.net.tls
+      - name: ldap-search-creds
+        secret:
+          defaultMode: 440
+          secretName: ldap-search-creds
+      - configMap:
+          defaultMode: 440
+          name: portus
+        name: config
