@@ -45,7 +45,7 @@ secret/cert/docker: $(build)/docker/docker.$(cert_base_name)-key.pem $(build)/do
 	$(KUBECTL) create secret tls docker.$(cert_base_name).tls --key=$< --cert=$(build)/docker/docker.$(cert_base_name).pem
 
 secret/ldap: $(build)/bind_dn $(build)/bind_password | kubectl
-	$(KUBECTL) create secret generic ldap-search-creds --from-file=bind-dn=$(build)/bind_dn --from-file=bind-password=$(build)/bind_password
+	$(KUBECTL) create secret generic ldap-search-credentials --from-file=bind-dn=$(build)/bind_dn --from-file=bind-password=$(build)/bind_password
 
 .PRECIOUS: $(build)/%.yaml
 $(build)/%.yaml: k8s/%.yaml.tmpl | sigil $(build)

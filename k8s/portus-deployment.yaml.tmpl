@@ -74,12 +74,12 @@ spec:
         - name: PORTUS_LDAP_AUTHENTICATION_BIND_DN
           valueFrom:
             secretKeyRef:
-              name: ldap-search-creds
+              name: ldap-search-credentials
               key: bind-dn
         - name: PORTUS_LDAP_AUTHENTICATION_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: ldap-search-creds
+              name: ldap-search-credentials
               key: bind-password
         - name: PORTUS_KEY_PATH
           value: /etc/ssl/portus/tls.key
@@ -106,10 +106,10 @@ spec:
         secret:
           defaultMode: 440
           secretName: portus.registry.platform.prod.aws.cloud.nordstrom.net.tls
-      - name: ldap-search-creds
+      - name: ldap-search-credentials
         secret:
           defaultMode: 440
-          secretName: ldap-search-creds
+          secretName: ldap-search-credentials
       - configMap:
           defaultMode: 440
           name: portus
