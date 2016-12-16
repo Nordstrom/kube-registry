@@ -1,0 +1,99 @@
+.PHONY: terraform awscli
+.PHONY: apply destroy plan plan/apply plan/destroy
+.PHONY: apply/pre apply/post plan/post destroy/post
+.PHONY: tfstate/push tfstate/configure tfstate/refresh
+
+aws_region ?= us-west-2
+aws_profile ?= default
+
+ifndef project_root
+$(error project_root variable must be set)
+endif
+
+ifdef https_proxy
+export https_proxy := $(https_proxy)
+endif
+
+export AWS_DEFAULT_REGION := $(aws_region)
+ifeq ($(aws_profile),)
+	AWS := aws
+else
+	export AWS_PROFILE := $(aws_profile)
+	AWS := aws --profile $(aws_profile)
+endif
+
+# export AWS_DEFAULT_REGION ?= us-west-2
+# export AWS_PROFILE ?= nonprod
+export MAKE ?= make
+export TERRAFORM ?= terraform
+TERRAFORM_APPLY ?= $(project_root)/terraform/terraform_apply
+
+apply/pre:
+apply/post:
+
+apply: export TRACE=y
+apply: export AWS_DEFAULT_PROFILE=$(aws_profile)
+apply: $(build)/terraform.tfplan $(build)/.terraform/terraform.tfstate
+	$(TERRAFORM_APPLY) $(build)/terraform.tfplan $(build)/.terraform/terraform.tfstate
+	-make apply/post
+
+outputs: $(build)/.terraform/terraform.tfstate
+	@$(TERRAFORM) output -json -state=$(build)/.terraform/terraform.tfstate
+
+visual: $(build)/terraform_view.png
+	open $(build)/terraform_view.png
+
+plan/apply/pre plan/post:
+
+plan: plan/apply
+plan/apply: $(build)/terraform.tfplan
+	-make plan/post
+
+destroy/post:
+
+destroy: $(build)/after-destroy.tfstate
+
+plan/destroy: $(build)/destroy.tfplan
+
+tfstate/configure: $(build)/.terraform/terraform.tfstate
+
+tfstate/push: | tfstate/configure terraform
+	cd $(build); $(TERRAFORM) remote push
+
+tfstate/refresh: export AWS_PROFILE=$(aws_profile)
+tfstate/refresh: $(build)/terraform.tfvars $(build)/.terraform/terraform.tfstate | terraform
+	$(TERRAFORM) refresh -var-file=$(build)/terraform.tfvars -state=$(build)/.terraform/terraform.tfstate
+	rm $(build)/terraform.tfplan
+
+$(build)/terraform.tfplan: export AWS_PROFILE=$(aws_profile)
+$(build)/terraform.tfplan: $(build)/.terraform/terraform.tfstate $(build)/terraform.tfvars *.tf | $(build)
+	$(TERRAFORM) get
+	$(TERRAFORM) plan -out=$@ -var-file=$(build)/terraform.tfvars -state=$(build)/.terraform/terraform.tfstate -module-depth=2
+
+$(build)/terraform_view.png: $(build)/.terraform/terraform.tfstate $(build)/terraform.tfvars *.tf | $(build) terraform dot
+	$(TERRAFORM) graph -verbose -module-depth=2 | dot -Tpng > $@
+
+$(build)/.terraform/terraform.tfstate: | $(build) terraform awscli
+	cd $(build); $(TERRAFORM) remote config \
+	    --backend=s3 \
+	    --backend-config="profile=$(aws_profile)" \
+	    --backend-config="bucket=$(s3_bucket_name)" \
+	    --backend-config="key=$(s3_path_app_remote_state_path)"
+
+$(build)/destroy.tfplan: $(build)/.terraform/terraform.tfstate $(build)/terraform.tfvars | terraform
+	$(TERRAFORM) get
+	$(TERRAFORM) plan -input=false -destroy -var-file=$(build)/terraform.tfvars -state=$(build)/.terraform/terraform.tfstate -module-depth=2 -out=$@
+
+$(build)/after-destroy.tfstate: export TRACE=y
+$(build)/after-destroy.tfstate: export AWS_PROFILE=$(aws_profile)
+$(build)/after-destroy.tfstate: $(build)/destroy.tfplan $(build)/.terraform/terraform.tfstate | terraform
+	$(TERRAFORM_APPLY) $(build)/destroy.tfplan $@ $(build)/.terraform/terraform.tfstate
+
+terraform: /usr/local/bin/terraform
+awscli: /usr/local/bin/aws
+
+/usr/local/bin/terraform:
+	brew install terraform
+
+/usr/local/bin/aws:
+	brew install awscli

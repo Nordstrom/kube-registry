@@ -1,0 +1,13 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Action": "sts:AssumeRole",
+            "Principal": {
+                "AWS": "${workers_instance_role_arn?:\"workers_instance_role_arn must be set\"}"
+            },
+            "Effect": "Allow",
+            "Sid": ""
+        }
+    ]
+}

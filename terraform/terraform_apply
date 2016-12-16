@@ -1,0 +1,19 @@
+#!/bin/bash
+
+[[ -n "${TRACE}" ]] && set -x
+TERRAFORM=${TERRAFORM:-terraform}
+
+main () {
+  local plan_path=${1}; shift
+  local state_path=${1}; shift
+  local state_out_path=${1:-${state_path}}; shift
+
+  ${TERRAFORM} apply -state=${state_path} -state-out=${state_out_path} ${plan_path}
+  local terraform_exit_code=$?
+  rm ${plan_path}
+  mv .terraform/terraform.tfstate ${state_out_path}
+  ${MAKE} tfstate/push
+  exit ${terraform_exit_code}
+}
+
+main "$@"

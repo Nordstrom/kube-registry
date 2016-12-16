@@ -1,0 +1,17 @@
+ifndef platform_env
+$(error platform_env is undefined)
+endif
+
+ifndef project_root
+$(error project_root is undefined)
+endif
+
+include $(project_root)/terraform/Makefile.variables.$(platform_env)
+
+build := $(PWD)/build.$(platform_env)
+export cloud_team_id := a0098
+export aws_resource_name_prefix := $(cloud_team_id)-registry-$(platform_env)
+cost_center := 45301
+s3_path_app_remote_state_path_iam := applications/registry/terraform/iam.tfstate
+s3_path_app_remote_state_path_rds := applications/registry/terraform/rds.tfstate
+s3_path_app_remote_state_path_mysql := applications/registry/terraform/mysql.tfstate
