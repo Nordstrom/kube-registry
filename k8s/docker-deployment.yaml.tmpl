@@ -36,7 +36,10 @@ spec:
         - /bin/sh
         - -c
         args:
-        - "cp /tmp/ca-certificates/*.pem /usr/local/share/ca-certificates && update-ca-certificates && exec /bin/registry serve /etc/docker/registry/config.yml"
+        - >
+          cp /tmp/ca-certificates/*.pem /usr/local/share/ca-certificates && \
+          update-ca-certificates && \
+          exec /bin/registry serve /etc/docker/registry/config.yml
         env:
         - name: REGISTRY_HTTP_SECRET
           valueFrom:
