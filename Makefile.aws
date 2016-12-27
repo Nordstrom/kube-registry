@@ -1,0 +1,23 @@
+aws_region ?= us-west-2
+aws_profile ?= default
+
+ifdef https_proxy
+export https_proxy := $(https_proxy)
+endif
+
+export AWS_DEFAULT_REGION := $(aws_region)
+ifeq ($(aws_profile),)
+	AWS := aws
+else
+	export AWS_PROFILE := $(aws_profile)
+	AWS := aws --profile $(aws_profile)
+endif
+
+# export AWS_DEFAULT_REGION ?= us-west-2
+# export AWS_PROFILE ?= nonprod
+
+export SIGIL := SIGIL_DELIMS={{{,}}} sigil
+export TERRAFORM ?= terraform
+
+kubectl sigil jq curl cfssl:
+	@which $@ > /dev/null || (echo "Please install $@" && exit 1)

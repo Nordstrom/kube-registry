@@ -9,18 +9,8 @@ db_name = portus_$(platform_env)
 namespace := registry
 KUBECTL := kubectl -n$(namespace)
 
-include $(project_root)/terraform/Makefile.variables
-include $(project_root)/terraform/Makefile.terraform
-
-secret/db/portus: $(build)/mysql_address
-secret/db/portus: $(build)/db_username
-secret/db/portus: $(build)/db_password
-secret/db/portus:
-	$(KUBECTL) create secret generic portus-db \
-	    --from-literal=db-name=$(db_name) \
-	    --from-literal=hostname=$$(cat $(build)/mysql_address) \
-	    --from-literal=username=$$(cat $(build)/db_username) \
-	    --from-literal=password=$$(cat $(build)/db_password)
+include $(project_root)/Makefile.variables
+include $(project_root)/Makefile.terraform
 
 $(build)/db_username: | $(build)
 	@printf 'u%s' "$$(openssl rand -hex 4)" > $@
@@ -31,10 +21,6 @@ $(build)/db_password: | $(build)
 $(build)/mysql_endpoint: $(build)/rds.tfstate
 	@$(TERRAFORM) output -state=$< endpoint > $@
 	#@echo "172.20.160.133:3306" > $@
-
-$(build)/mysql_address: $(build)/rds.tfstate
-	@$(TERRAFORM) output -state=$< address > $@
-	#@echo "172.20.160.133" > $@
 
 $(build)/master_username: $(build)/rds.tfstate
 	@$(TERRAFORM) output -state=$< username > $@

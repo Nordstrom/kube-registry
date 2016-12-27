@@ -8,8 +8,8 @@ aws_resource_name_prefix := $(cloud_team_id)-registry-$(platform_env)
 s3_path_app_remote_state_path = $(s3_path_app_remote_state_path_iam)
 SIGIL := SIGIL_DELIMS={{{,}}} sigil
 
-include $(project_root)/terraform/Makefile.variables
-include $(project_root)/terraform/Makefile.terraform
+include $(project_root)/Makefile.variables
+include $(project_root)/Makefile.terraform
 
 $(build)/%.json: %.json.tmpl | sigil $(build)
 	@echo "Templating $@"

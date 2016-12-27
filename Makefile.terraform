@@ -3,30 +3,15 @@
 .PHONY: apply/pre apply/post plan/post destroy/post
 .PHONY: tfstate/push tfstate/configure tfstate/refresh
 
-aws_region ?= us-west-2
-aws_profile ?= default
-
 ifndef project_root
 $(error project_root variable must be set)
 endif
 
-ifdef https_proxy
-export https_proxy := $(https_proxy)
-endif
+include $(project_root)/Makefile.aws
 
-export AWS_DEFAULT_REGION := $(aws_region)
-ifeq ($(aws_profile),)
-	AWS := aws
-else
-	export AWS_PROFILE := $(aws_profile)
-	AWS := aws --profile $(aws_profile)
-endif
-
-# export AWS_DEFAULT_REGION ?= us-west-2
-# export AWS_PROFILE ?= nonprod
 export MAKE ?= make
 export TERRAFORM ?= terraform
-TERRAFORM_APPLY ?= $(project_root)/terraform/terraform_apply
+TERRAFORM_APPLY ?= $(project_root)/terraform_apply
 
 apply/pre:
 apply/post:

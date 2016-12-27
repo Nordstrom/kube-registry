@@ -8,8 +8,8 @@ aws_resource_name_prefix := $(cloud_team_id)-$(platform_env)
 s3_path_app_remote_state_path = $(s3_path_app_remote_state_path_rds)
 instance_name := portus-db
 
-include $(project_root)/terraform/Makefile.variables
-include $(project_root)/terraform/Makefile.terraform
+include $(project_root)/Makefile.variables
+include $(project_root)/Makefile.terraform
 
 $(build)/master_db_username: | $(build)
 	@printf 'u%s' "$$(openssl rand -hex 4)" > $@
