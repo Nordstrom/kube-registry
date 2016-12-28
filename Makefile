@@ -5,10 +5,9 @@ include Makefile.aws
 
 build := build
 export namespace := registry
-# export service_name := portus
-export cert_base_name := $(namespace).platform.prod.aws.cloud.nordstrom.net
+export cert_base_name := $(namespace).$(platform_domain_name)
 KUBECTL := kubectl -n=$(namespace)
-tls_hosts_base := registry.platform.prod.aws.cloud.nordstrom.net registry.svc.cluster.local registry.svc registry
+tls_hosts_base := registry.$(platform_domain_name) registry.svc.cluster.local registry.svc registry
 export kube2iam_role := arn:aws:iam::051620159240:role/a0098/k8s/a0098-registry-production-docker_registry
 s3_path_app_remote_state_path := applications/registry/terraform
 

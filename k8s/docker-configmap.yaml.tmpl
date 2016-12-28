@@ -10,9 +10,9 @@ data:
     version: 0.1
     auth:
       token:
-        realm: https://portus.registry.platform.prod.aws.cloud.nordstrom.net/v2/token
-        service: docker.registry.platform.prod.aws.cloud.nordstrom.net
-        issuer: portus.registry.platform.prod.aws.cloud.nordstrom.net
+        realm: https://portus.registry.${platform_domain_name?:"platform_domain_name must be set"}/v2/token
+        service: docker.registry.${platform_domain_name?:"platform_domain_name must be set"}
+        issuer: portus.registry.${platform_domain_name?:"platform_domain_name must be set"}
         rootcertbundle: /etc/ssl/portus/tls.crt
     debug:
       addr: :5001
@@ -23,7 +23,7 @@ data:
         threshold: 3
     http:
       addr: :5000
-      host: docker.registry.platform.prod.aws.cloud.nordstrom.net
+      host: docker.registry.${platform_domain_name?:"platform_domain_name must be set"}
       tls:
         certificate: /etc/ssl/docker/tls.crt
         key: /etc/ssl/docker/tls.key

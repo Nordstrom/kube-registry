@@ -34,7 +34,7 @@ spec:
         - name: REGISTRY_SSL_ENABLED
           value: "true"
         - name: REGISTRY_HOSTNAME
-          value: docker.registry.platform.prod.aws.cloud.nordstrom.net
+          value: docker.registry.${platform_domain_name?:"platform_domain_name must be set"}
         - name: PORTUS_DEBUG
           value: "true"
         - name: PORTUS_LOCAL_CONFIG_PATH
@@ -105,7 +105,7 @@ spec:
       - name: tls-cert
         secret:
           defaultMode: 440
-          secretName: portus.registry.platform.prod.aws.cloud.nordstrom.net.tls
+          secretName: portus.registry.${platform_domain_name?:"platform_domain_name must be set"}.tls
       - name: ldap-search-credentials
         secret:
           defaultMode: 440

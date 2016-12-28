@@ -77,8 +77,8 @@ spec:
       - name: tls-cert
         secret:
           defaultMode: 400
-          secretName: docker.registry.platform.prod.aws.cloud.nordstrom.net.tls
+          secretName: docker.registry.${platform_domain_name?:"platform_domain_name must be set"}.tls
       - name: portus-tls-cert
         secret:
           defaultMode: 400
-          secretName: portus.registry.platform.prod.aws.cloud.nordstrom.net.tls
+          secretName: portus.registry.${platform_domain_name?:"platform_domain_name must be set"}.tls

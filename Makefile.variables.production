@@ -3,6 +3,7 @@ export aws_region ?= us-west-2
 export s3_bucket_name := a0098-team
 export vpc_id := vpc-b67a82d3
 export workers_instance_role_arn := arn:aws:iam::051620159240:role/a0098/a0098-platform-production-workers-role
+export platform_domain_name := platform.prod.aws.cloud.nordstrom.net
 
 db_subnet_ids := subnet-81e70df6 subnet-8767b2e2
 rds_security_group_allowed_cidr_ranges := 10.0.0.0/8 172.16.0.0/12

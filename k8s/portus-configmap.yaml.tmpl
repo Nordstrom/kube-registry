@@ -141,7 +141,7 @@ data:
 
     # The FQDN of the machine where Portus is being deployed.
     machine_fqdn:
-      value: "portus.registry.platform.prod.aws.cloud.nordstrom.net"
+      value: "portus.registry.${platform_domain_name?:"platform_domain_name must be set"}"
 
     # Allow users to have different display names on the web site. This will
     # **not** be the username used by `docker login`. It defaults to false because

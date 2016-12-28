@@ -9,11 +9,11 @@ metadata:
     ingress.kubernetes.io/secure-backends: "true"
 spec:
   tls:
-  - secretName: portus.registry.platform.prod.aws.cloud.nordstrom.net.tls
+  - secretName: portus.registry.${platform_domain_name?:"platform_domain_name must be set"}.tls
     hosts:
-    - portus.registry.platform.prod.aws.cloud.nordstrom.net
+    - portus.registry.${platform_domain_name?:"platform_domain_name must be set"}
   rules:
-  - host: portus.registry.platform.prod.aws.cloud.nordstrom.net
+  - host: portus.registry.${platform_domain_name?:"platform_domain_name must be set"}
     http:
       paths:
       - backend:
