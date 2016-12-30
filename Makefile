@@ -14,13 +14,16 @@ KUBECTL := kubectl -n=$(namespace)
 namespace: $(build)/registry-namespace.yaml | kubectl
 	kubectl apply -f $<
 
-apply: apply/portus apply/docker
+apply: apply/portus apply/docker apply/registry-monitor
 
 apply/docker: $(build)/docker-registry-service.yaml $(build)/docker-registry-configmap.yaml $(build)/docker-registry-deployment.yaml $(build)/docker-registry-ingress.yaml $(build)/nord-ca-certs-configmap.yaml | kubectl
 	$(KUBECTL) apply $(foreach f,$^, -f $(f))
 
 apply/portus: $(build)/portus-service.yaml $(build)/portus-configmap.yaml $(build)/portus-deployment.yaml $(build)/portus-ingress.yaml | kubectl
 	# make namespace secret/db/portus secret/app/portus secret/cert/portus secret/ldap
+	$(KUBECTL) apply $(foreach f,$^, -f $(f))
+
+apply/registry-monitor: $(build)/registry-monitor-deployment.yaml | kubectl
 	$(KUBECTL) apply $(foreach f,$^, -f $(f))
 
 secret/db/portus: $(build)/portus/db-name $(build)/portus/db-hostname $(build)/portus/db-password $(build)/portus/db-username | kubectl
@@ -46,6 +49,9 @@ secret/cert/portus: $(build)/portus.$(cert_base_name_external).tls-secret.yaml $
 
 secret/ldap: $(build)/bind_dn $(build)/bind_password | kubectl
 	$(KUBECTL) create secret generic ldap-search-credentials --from-file=bind-dn=$(build)/bind_dn --from-file=bind-password=$(build)/bind_password
+
+secret/app/registry-monitor: $(build)/registry-monitor/password $(build)/registry-monitor/username | kubectl
+	kubectl -n=$(namespace) create secret generic registry-monitor-credentials --from-file=password=$(build)/registry-monitor/password --from-file=username=$(build)/registry-monitor/username
 
 .PRECIOUS: $(build)/%.yaml
 $(build)/%.yaml: k8s/%.yaml.tmpl | sigil $(build)
@@ -94,6 +100,14 @@ $(build)/portus/app-secret-key-base: | $(build)
 
 $(build)/docker/ha-shared-secret: | $(build)
 	@openssl rand -hex 16 | tr -d '\n' > $@
+
+$(build)/registry-monitor/password: | $(build)
+	@[[ -n "${REGISTRY_MONITOR_PASSWORD}" ]] || (echo "REGISTRY_MONITOR_PASSWORD must be set" && exit 1)
+	jq -nCMRr 'env.REGISTRY_MONITOR_PASSWORD' | tr -d '\n' > $@
+
+$(build)/registry-monitor/username: | $(build)
+	@[[ -n "${REGISTRY_MONITOR_USERNAME}" ]] || (echo "REGISTRY_MONITOR_USERNAME must be set" && exit 1)
+	jq -nCMRr 'env.REGISTRY_MONITOR_USERNAME' | tr -d '\n' > $@
 
 $(build):
 	mkdir -p $@

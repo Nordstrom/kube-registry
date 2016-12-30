@@ -1,0 +1,90 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  labels:
+    app: registry-monitor
+  name: registry-monitor
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: registry-monitor
+  template:
+    metadata:
+      labels:
+        app: registry-monitor
+      annotations:
+        pod.beta.kubernetes.io/init-containers: |
+          [
+              {
+                  "name": "install-nord-ca-roots",
+                  "image": "quay.io/nordstrom/baseimage-ubuntu:16.04",
+                  "command": [
+                      "/bin/sh",
+                      "-c",
+                      "cat /tmp/nord-ca-certs/*.pem > /etc/ssl/certs/ca-certificates.crt"
+                  ],
+                  "volumeMounts": [
+                      {
+                          "name": "ca-certs",
+                          "mountPath": "/etc/ssl/certs"
+                      },
+                      {
+                          "name": "nord-ca-certs",
+                          "mountPath": "/tmp/nord-ca-certs",
+                          "readOnly": true
+                      }
+                  ]
+              }
+          ]
+    spec:
+      containers:
+      - name: monitor
+        image: quay.io/nordstrom/registry-monitor:0.0.1
+        command:
+        - /bin/sh
+        - -c
+        args:
+        - >
+          exec /usr/bin/registry-monitor \
+            -username=\$(REGISTRY_MONITOR_USERNAME) \
+            -password=\$(REGISTRY_MONITOR_PASSWORD) \
+            -registry-host=docker.registry.${platform_domain_name?:"platform_domain_name must be set"} \
+            -repository=docker.registry.${platform_domain_name?:"platform_domain_name must be set"}/k8s/registry-monitor \
+            -base-layer-id=4f83eba78c
+        env:
+        - name: UNDER_DOCKER
+          value: "true"
+        - name: REGISTRY_MONITOR_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: registry-monitor-credentials
+              key: username
+        - name: REGISTRY_MONITOR_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: registry-monitor-credentials
+              key: password
+        ports:
+        - containerPort: 8000
+          protocol: TCP
+        resources:
+          limits:
+            cpu: 100m
+            memory: 100Mi
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - mountPath: /var/run/docker.sock
+          name: docker-socket
+        - name: ca-certs
+          mountPath: /etc/ssl/certs
+      volumes:
+      - name: docker-socket
+        hostPath:
+          path: /var/run/docker.sock
+      - name: nord-ca-certs
+        configMap:
+          name: nord-ca-certs
+      - name: ca-certs
+        emptyDir: {}
