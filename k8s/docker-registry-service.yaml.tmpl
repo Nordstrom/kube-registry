@@ -1,10 +1,9 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: docker
+  name: docker-registry
   labels:
-    app: docker
-  namespace: registry
+    app: docker-registry
 spec:
   ports:
   - name: https

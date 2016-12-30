@@ -1,10 +1,9 @@
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
-  name: docker
-  namespace: registry
+  name: docker-registry
   labels:
-    app: docker
+    app: docker-registry
   annotations:
     ingress.kubernetes.io/secure-backends: "true"
 spec:
@@ -17,6 +16,6 @@ spec:
     http:
       paths:
       - backend:
-          serviceName: docker
+          serviceName: docker-registry
           servicePort: 443
         path: /

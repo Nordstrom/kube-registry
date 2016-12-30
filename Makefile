@@ -16,7 +16,7 @@ namespace: $(build)/registry-namespace.yaml | kubectl
 
 apply: apply/portus apply/docker
 
-apply/docker: $(build)/docker-service.yaml $(build)/docker-configmap.yaml $(build)/docker-deployment.yaml $(build)/docker-ingress.yaml $(build)/nord-ca-certs-configmap.yaml | kubectl
+apply/docker: $(build)/docker-registry-service.yaml $(build)/docker-registry-configmap.yaml $(build)/docker-registry-deployment.yaml $(build)/docker-registry-ingress.yaml $(build)/nord-ca-certs-configmap.yaml | kubectl
 	$(KUBECTL) apply $(foreach f,$^, -f $(f))
 
 apply/portus: $(build)/portus-service.yaml $(build)/portus-configmap.yaml $(build)/portus-deployment.yaml $(build)/portus-ingress.yaml | kubectl
