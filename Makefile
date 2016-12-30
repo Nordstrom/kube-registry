@@ -3,13 +3,13 @@ project_root := $(PWD)
 include Makefile.variables
 include Makefile.aws
 
-build := build
+export build := $(project_root)/build.$(platform_env)
 export namespace := registry
-export cert_base_name := $(namespace).$(platform_domain_name)
-KUBECTL := kubectl -n=$(namespace)
-tls_hosts_base := registry.$(platform_domain_name) registry.svc.cluster.local registry.svc registry
 export kube2iam_role := arn:aws:iam::051620159240:role/a0098/k8s/a0098-registry-production-docker_registry
+export cert_base_name_external := $(namespace).$(platform_domain_name)
+export cert_base_name_internal := $(namespace).svc.$(cluster_dns_domain)
 s3_path_app_remote_state_path := applications/registry/terraform
+KUBECTL := kubectl -n=$(namespace)
 
 namespace: $(build)/registry-namespace.yaml | kubectl
 	kubectl apply -f $<
@@ -39,45 +39,27 @@ secret/app/docker: $(build)/docker/ha-shared-secret | kubectl
 	$(KUBECTL) create secret generic docker-app \
 	  --from-literal=ha-shared-secret=$$(cat $(build)/docker/ha-shared-secret)
 
-secret/cert/portus: $(build)/portus/portus.$(cert_base_name)-key.pem $(build)/portus/portus.$(cert_base_name).pem | kubectl
-	$(KUBECTL) create secret tls portus.$(cert_base_name).tls --key=$< --cert=$(build)/portus/portus.$(cert_base_name).pem
+secret/cert/docker: $(build)/docker.$(cert_base_name_external).tls-secret.yaml $(build)/docker.$(cert_base_name_internal).tls-secret.yaml | kubectl
+	$(KUBECTL) apply $(foreach f,$^, -f $(f))
 
-secret/cert/docker: $(build)/docker/docker.$(cert_base_name)-key.pem $(build)/docker/docker.$(cert_base_name).pem | kubectl
-	$(KUBECTL) create secret tls docker.$(cert_base_name).tls --key=$< --cert=$(build)/docker/docker.$(cert_base_name).pem
+secret/cert/portus: $(build)/portus.$(cert_base_name_external).tls-secret.yaml $(build)/portus.$(cert_base_name_internal).tls-secret.yaml | kubectl
+	$(KUBECTL) apply $(foreach f,$^, -f $(f))
 
 secret/ldap: $(build)/bind_dn $(build)/bind_password | kubectl
 	$(KUBECTL) create secret generic ldap-search-credentials --from-file=bind-dn=$(build)/bind_dn --from-file=bind-password=$(build)/bind_password
 
 .PRECIOUS: $(build)/%.yaml
 $(build)/%.yaml: k8s/%.yaml.tmpl | sigil $(build)
-	$(SIGIL) -p -f $< > $@
+	@$(SIGIL) -p -f $< > $@
 
-.PRECIOUS: $(build)/%/%.$(cert_base_name).json
-$(build)/%/%.$(cert_base_name).json: ssl/csr.json.tmpl build/%.tls_hosts.json | sigil $(build)
-	$(SIGIL) -p -f $< > $@
+.PRECIOUS: $(build)/%.tls-secret.yaml.tmpl
+$(build)/%.tls-secret.yaml: k8s/tls-secret.yaml.tmpl $(build)/tls/%.crt
+	@echo "Templating $@"
+	@tls_secret_name='$*' \
+	  $(SIGIL) -p -f $< > $@
 
-.PRECIOUS: $(build)/%/%.tls_hosts.json
-$(build)/%/%.tls_hosts.json: | jq
-	jq -ncCMRr '"$(foreach h,$(tls_hosts_base),$*.$(h)) $*" | split(" ")' > $@
-
-.PRECIOUS: $(build)/%/%.$(cert_base_name)-key.pem $(build)/%/%.$(cert_base_name).csr
-$(build)/%/%.$(cert_base_name)-key.pem $(build)/%/%.$(cert_base_name).csr: $(build)/%/%.$(cert_base_name).json | cfssl $(build)
-	cfssl genkey $< | cfssljson -bare $(build)/$*.$(cert_base_name)
-
-.PRECIOUS: $(build)/%/%.$(cert_base_name).response.json
-$(build)/%/%.$(cert_base_name).response.json:  $(build)/%/%.$(cert_base_name).request.json | curl jq $(build)
-	curl -X "POST" "https://certreq319.platform.prod.aws.cloud.nordstrom.net/getCert" \
-	     -H "Content-Type: application/json" \
-	     -u ${USER} \
-	     -d@$< > $@
-
-.PRECIOUS: $(build)/%/%.$(cert_base_name).request.json
-$(build)/%/%.$(cert_base_name).request.json: $(build)/%/%.$(cert_base_name).csr | jq $(build)
-	tr -d '\n' < $< | jq -CMR '{csr:.}' > $@
-
-.PRECIOUS: $(build)/%/%.$(cert_base_name).pem
-$(build)/%/%.$(cert_base_name).pem: $(build)/%/%.$(cert_base_name).response.json | curl jq $(build)
-	jq -r '.Cert' $< > $@
+$(build)/tls/%.crt:
+	cd tls; make $@
 
 $(build)/bind_dn: | $(build)
 	@[[ -n "${LDAP_BIND_DN}" ]] || (echo "LDAP_BIND_DN must be set" && exit 1)

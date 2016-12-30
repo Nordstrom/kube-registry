@@ -16,3 +16,4 @@ s3_path_app_remote_state_path := applications/registry/terraform
 s3_path_app_remote_state_path_iam := $(s3_path_app_remote_state_path)/iam.tfstate
 s3_path_app_remote_state_path_rds := $(s3_path_app_remote_state_path)/rds.tfstate
 s3_path_app_remote_state_path_mysql := $(s3_path_app_remote_state_path)/mysql.tfstate
+cluster_dns_domain := cluster.local
