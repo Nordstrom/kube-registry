@@ -25,19 +25,18 @@ apply/portus: $(build)/portus-service.yaml $(build)/portus-configmap.yaml $(buil
 
 secret/db/portus: $(build)/portus/db-name $(build)/portus/db-hostname $(build)/portus/db-password $(build)/portus/db-username | kubectl
 	$(KUBECTL) create secret generic portus-db \
-	  --from-literal=db-name=$$(cat $(build)/portus/db-name) \
-	  --from-literal=hostname=$$(cat $(build)/portus/db-hostname) \
-	  --from-literal=password=$$(cat $(build)/portus/db-password) \
-	  --from-literal=username=$$(cat $(build)/portus/db-username)
+	  --from-file=db-name=$(build)/portus/db-name \
+	  --from-file=hostname=$(build)/portus/db-hostname \
+	  --from-file=password=$(build)/portus/db-password \
+	  --from-file=username=$(build)/portus/db-username
 
 secret/app/portus: $(build)/portus/app-password $(build)/portus/app-secret-key-base | kubectl
 	$(KUBECTL) create secret generic portus-app \
-	  --from-literal=password=$$(cat $(build)/portus/app-password) \
-	  --from-literal=secret-key-base=$$(cat $(build)/portus/app-secret-key-base)
+	  --from-file=password=$(build)/portus/app-password \
+	  --from-file=secret-key-base=$(build)/portus/app-secret-key-base
 
 secret/app/docker: $(build)/docker/ha-shared-secret | kubectl
-	$(KUBECTL) create secret generic docker-app \
-	  --from-literal=ha-shared-secret=$$(cat $(build)/docker/ha-shared-secret)
+	$(KUBECTL) create secret generic docker-app --from-file=ha-shared-secret=$(build)/docker/ha-shared-secret
 
 secret/cert/docker: $(build)/docker.$(cert_base_name_external).tls-secret.yaml $(build)/docker.$(cert_base_name_internal).tls-secret.yaml | kubectl
 	$(KUBECTL) apply $(foreach f,$^, -f $(f))

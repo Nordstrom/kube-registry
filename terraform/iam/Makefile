@@ -6,7 +6,6 @@ project_root := $(realpath $(PWD)/../..)
 build := $(PWD)/build.$(platform_env)
 aws_resource_name_prefix := $(cloud_team_id)-registry-$(platform_env)
 s3_path_app_remote_state_path = $(s3_path_app_remote_state_path_iam)
-SIGIL := SIGIL_DELIMS={{{,}}} sigil
 
 include $(project_root)/Makefile.variables
 include $(project_root)/Makefile.terraform
@@ -32,6 +31,3 @@ $(build):
 
 clean:
 	rm -rf $(build)
-
-sigil:
-	@which sigil > /dev/null || (echo "Please install sigil (https://github.com/gliderlabs/sigil)" && exit 1)

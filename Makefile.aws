@@ -17,7 +17,9 @@ endif
 # export AWS_PROFILE ?= nonprod
 
 export SIGIL := SIGIL_DELIMS={{{,}}} sigil
-export TERRAFORM ?= terraform
 
-kubectl sigil jq curl cfssl:
+kubectl jq curl cfssl:
 	@which $@ > /dev/null || (echo "Please install $@" && exit 1)
+
+sigil:
+	@which sigil > /dev/null || (echo "Please install sigil (https://github.com/gliderlabs/sigil)" && exit 1)
