@@ -4,7 +4,6 @@ metadata:
   labels:
     app: registry
   name: nord-ca-certs
-  namespace: registry
 data:
   root-sha256.pem: |
     {{{ file "../nord-ca/root-sha256.pem" | indent "    " }}}

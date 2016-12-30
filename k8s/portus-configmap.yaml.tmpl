@@ -4,7 +4,6 @@ metadata:
   labels:
     app: portus
   name: portus
-  namespace: registry
 data:
   config-local.yml: |
     # This file contains the default values for the configuration of this
@@ -52,6 +51,7 @@ data:
     ldap:
       enabled: true
 
+      # TODO: Portus is not verifying the TLS cert
       hostname: "ldap0319.nordstrom.net"
       port: 636
 
