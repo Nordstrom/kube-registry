@@ -50,28 +50,30 @@ $(build)/%.$(cluster_dns_domain)-csr.json: csr.json.tmpl $(build)/%.$(cluster_dn
 	  hosts='$(shell cat $(build)/$*.$(cluster_dns_domain)-hosts.json)' \
 	  $(SIGIL) -p -f $< > $@
 
-# .PRECIOUS: $(build)/%.$(platform_domain_name)-csr.json
-# $(build)/%.$(platform_domain_name)-csr.json: csr.json.tmpl $(build)/%.$(platform_domain_name)-hosts.json | $(build) sigil
-# 	@cert_name=$*.$(platform_domain_name) \
-# 	  organization='$(shell cat $(build)/$*.$(platform_domain_name)-hosts.json)' \
-# 	  hosts='$(shell cat $(build)/$*.$(platform_domain_name)-hosts.json)' \
+.PRECIOUS: $(build)/%.$(platform_domain_name)-csr.json
+$(build)/%.$(platform_domain_name)-csr.json: export organization := NIHC Inc
+$(build)/%.$(platform_domain_name)-csr.json: export locality := Portland
+$(build)/%.$(platform_domain_name)-csr.json: export state := Oregon
+$(build)/%.$(platform_domain_name)-csr.json: csr.json.tmpl $(build)/%.$(platform_domain_name)-hosts.json | $(build) sigil
+	@cert_name=$*.$(platform_domain_name) \
+	  hosts='$(shell cat $(build)/$*.$(platform_domain_name)-hosts.json)' \
+	  $(SIGIL) -p -f $< > $@
+
+# $(build)/portus.registry.$(platform_domain_name)-csr.json: export cert_name := portus.$(platform_domain_name)
+# $(build)/portus.registry.$(platform_domain_name)-csr.json: export organization := Nordstrom
+# $(build)/portus.registry.$(platform_domain_name)-csr.json: export locality := Seattle
+# $(build)/portus.registry.$(platform_domain_name)-csr.json: export state := Washington
+# $(build)/portus.registry.$(platform_domain_name)-csr.json: csr.json.tmpl $(build)/portus.registry.$(platform_domain_name)-hosts.json | $(build) sigil
+# 	@hosts='$(shell cat $(build)/portus.registry.$(platform_domain_name)-hosts.json)' \
 # 	  $(SIGIL) -p -f $< > $@
 
-$(build)/portus.registry.$(platform_domain_name)-csr.json: export cert_name := portus.$(platform_domain_name)
-$(build)/portus.registry.$(platform_domain_name)-csr.json: export organization := Nordstrom
-$(build)/portus.registry.$(platform_domain_name)-csr.json: export locality := Seattle
-$(build)/portus.registry.$(platform_domain_name)-csr.json: export state := Washington
-$(build)/portus.registry.$(platform_domain_name)-csr.json: csr.json.tmpl $(build)/portus.registry.$(platform_domain_name)-hosts.json | $(build) sigil
-	@hosts='$(shell cat $(build)/portus.registry.$(platform_domain_name)-hosts.json)' \
-	  $(SIGIL) -p -f $< > $@
-
-$(build)/docker.registry.$(platform_domain_name)-csr.json: export cert_name := docker.$(platform_domain_name)
-$(build)/docker.registry.$(platform_domain_name)-csr.json: export organization := NIHC Inc
-$(build)/docker.registry.$(platform_domain_name)-csr.json: export locality := Portland
-$(build)/docker.registry.$(platform_domain_name)-csr.json: export state := Oregon
-$(build)/docker.registry.$(platform_domain_name)-csr.json: csr.json.tmpl $(build)/docker.registry.$(platform_domain_name)-hosts.json | $(build) sigil
-	@hosts='$(shell cat $(build)/docker.registry.$(platform_domain_name)-hosts.json)' \
-	  $(SIGIL) -p -f $< > $@
+# $(build)/docker.registry.$(platform_domain_name)-csr.json: export cert_name := docker.$(platform_domain_name)
+# $(build)/docker.registry.$(platform_domain_name)-csr.json: export organization := NIHC Inc
+# $(build)/docker.registry.$(platform_domain_name)-csr.json: export locality := Portland
+# $(build)/docker.registry.$(platform_domain_name)-csr.json: export state := Oregon
+# $(build)/docker.registry.$(platform_domain_name)-csr.json: csr.json.tmpl $(build)/docker.registry.$(platform_domain_name)-hosts.json | $(build) sigil
+# 	@hosts='$(shell cat $(build)/docker.registry.$(platform_domain_name)-hosts.json)' \
+# 	  $(SIGIL) -p -f $< > $@
 
 .PRECIOUS: $(build)/%.$(cluster_dns_domain)-hosts.json
 $(build)/%.registry.svc.$(cluster_dns_domain)-hosts.json: | jq
