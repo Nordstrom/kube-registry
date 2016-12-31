@@ -12,10 +12,10 @@ include $(project_root)/Makefile.variables
 include $(project_root)/Makefile.terraform
 
 $(build)/master_db_username: | $(build)
-	@printf 'u%s' "$$(openssl rand -hex 4)" > $@
+	printf 'u%s' "$$(openssl rand -hex 4)" > $@
 
 $(build)/master_db_password: | $(build)
-	@printf 'p%s' "$$(openssl rand -hex 16)" > $@
+	printf 'p%s' "$$(openssl rand -hex 16)" > $@
 
 $(build)/terraform.tfvars: $(build)/master_db_username
 $(build)/terraform.tfvars: $(build)/master_db_password
