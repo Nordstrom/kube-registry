@@ -19,7 +19,7 @@ resource "aws_db_instance" "portus" {
     parameter_group_name   = "${aws_db_parameter_group.portus.name}"
 
     tags {
-        Name = "${var.instance_name}"
+        Name = "${var.aws_resource_name_prefix}-${var.instance_name}"
         CostCenter = "${var.cost_center}"
         Owner = "${var.cloud_team_id}"
     }
@@ -43,7 +43,7 @@ resource "aws_security_group" "rds_instances" {
     vpc_id = "${var.vpc_id}"
 
     tags {
-        Name = "${var.instance_name}"
+        Name = "${var.aws_resource_name_prefix}-${var.instance_name}"
         CostCenter = "${var.cost_center}"
         Owner = "${var.cloud_team_id}"
     }
