@@ -61,24 +61,24 @@ spec:
         - name: PORTUS_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: portus-app
+              name: portus
               key: password
         - name: PORTUS_SECRET_KEY_BASE
           valueFrom:
             secretKeyRef:
-              name: portus-app
+              name: portus
               key: secret-key-base
         - name: PORTUS_LDAP_AUTHENTICATION_ENABLED
           value: "true"
         - name: PORTUS_LDAP_AUTHENTICATION_BIND_DN
           valueFrom:
             secretKeyRef:
-              name: ldap-search-credentials
+              name: portus-ldap
               key: bind-dn
         - name: PORTUS_LDAP_AUTHENTICATION_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: ldap-search-credentials
+              name: portus-ldap
               key: bind-password
         - name: PORTUS_KEY_PATH
           value: /etc/ssl/portus/tls.key
@@ -90,13 +90,13 @@ spec:
         - containerPort: 9292
           protocol: TCP
         # TODO: diagnose readiness probe failure (Client.Timeout exceeded while awaiting headers)
-        # readinessProbe:
-        #   httpGet:
-        #     path: /
-        #     port: 9292
-        #     scheme: HTTPS
-        #   initialDelaySeconds: 30
-        #   timeoutSeconds: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 9292
+            scheme: HTTPS
+          initialDelaySeconds: 10
+          timeoutSeconds: 1
         resources: {}
         volumeMounts:
         - mountPath: /etc/ssl/portus
@@ -112,10 +112,10 @@ spec:
         secret:
           defaultMode: 440
           secretName: portus.registry.${platform_domain_name?:platform_domain_name must be set}.tls
-      - name: ldap-search-credentials
+      - name: portus-ldap
         secret:
           defaultMode: 440
-          secretName: ldap-search-credentials
+          secretName: portus-ldap
       - configMap:
           defaultMode: 440
           name: portus

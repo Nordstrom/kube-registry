@@ -10,13 +10,14 @@ export cert_base_name_external := $(namespace).$(platform_domain_name)
 export cert_base_name_internal := $(namespace).svc.$(cluster_dns_domain)
 s3_path_app_remote_state_path := applications/registry/terraform
 KUBECTL := kubectl -n=$(namespace)
+TERRAFORM := terraform
 
 namespace: $(build)/registry-namespace.yaml | kubectl
 	kubectl apply -f $<
 
-apply: apply/portus apply/docker apply/registry-monitor
+apply: apply/portus apply/docker-registry apply/registry-monitor
 
-apply/docker: $(build)/docker-registry-service.yaml $(build)/docker-registry-configmap.yaml $(build)/docker-registry-deployment.yaml $(build)/docker-registry-ingress.yaml $(build)/nord-ca-certs-configmap.yaml | kubectl
+apply/docker-registry: $(build)/docker-registry-service.yaml $(build)/docker-registry-configmap.yaml $(build)/docker-registry-deployment.yaml $(build)/docker-registry-ingress.yaml $(build)/nord-ca-certs-configmap.yaml | kubectl
 	$(KUBECTL) apply $(foreach f,$^, -f $(f))
 
 apply/portus: $(build)/portus-service.yaml $(build)/portus-configmap.yaml $(build)/portus-deployment.yaml $(build)/portus-ingress.yaml | kubectl
@@ -26,32 +27,20 @@ apply/portus: $(build)/portus-service.yaml $(build)/portus-configmap.yaml $(buil
 apply/registry-monitor: $(build)/registry-monitor-deployment.yaml | kubectl
 	$(KUBECTL) apply $(foreach f,$^, -f $(f))
 
-secret/db/portus: $(build)/portus/db-name $(build)/portus/db-hostname $(build)/portus/db-password $(build)/portus/db-username | kubectl
-	$(KUBECTL) create secret generic portus-db \
-	  --from-file=db-name=$(build)/portus/db-name \
-	  --from-file=hostname=$(build)/portus/db-hostname \
-	  --from-file=password=$(build)/portus/db-password \
-	  --from-file=username=$(build)/portus/db-username
-
-secret/app/portus: $(build)/portus/app-password $(build)/portus/app-secret-key-base | kubectl
-	$(KUBECTL) create secret generic portus-app \
-	  --from-file=password=$(build)/portus/app-password \
-	  --from-file=secret-key-base=$(build)/portus/app-secret-key-base
-
-secret/app/docker: $(build)/docker/ha-shared-secret | kubectl
-	$(KUBECTL) create secret generic docker-app --from-file=ha-shared-secret=$(build)/docker/ha-shared-secret
-
-secret/cert/docker: $(build)/docker.$(cert_base_name_external).tls-secret.yaml $(build)/docker.$(cert_base_name_internal).tls-secret.yaml | kubectl
+secrets/portus: $(build)/portus-db-secret.yaml $(build)/portus-secret.yaml $(build)/portus-ldap-secret.yaml | kubectl
 	$(KUBECTL) apply $(foreach f,$^, -f $(f))
 
-secret/cert/portus: $(build)/portus.$(cert_base_name_external).tls-secret.yaml $(build)/portus.$(cert_base_name_internal).tls-secret.yaml | kubectl
+secrets/docker: $(build)/docker-registry-secret.yaml | kubectl
 	$(KUBECTL) apply $(foreach f,$^, -f $(f))
 
-secret/ldap: $(build)/bind_dn $(build)/bind_password | kubectl
-	$(KUBECTL) create secret generic ldap-search-credentials --from-file=bind-dn=$(build)/bind_dn --from-file=bind-password=$(build)/bind_password
+secrets/registry-monitor: $(build)/registry-monitor-secret.yaml | kubectl
+	$(KUBECTL) apply $(foreach f,$^, -f $(f))
 
-secret/app/registry-monitor: $(build)/registry-monitor/password $(build)/registry-monitor/username | kubectl
-	kubectl -n=$(namespace) create secret generic registry-monitor-credentials --from-file=password=$(build)/registry-monitor/password --from-file=username=$(build)/registry-monitor/username
+secrets/docker/certs: $(build)/docker.$(cert_base_name_external).tls-secret.yaml $(build)/docker.$(cert_base_name_internal).tls-secret.yaml | kubectl
+	$(KUBECTL) apply $(foreach f,$^, -f $(f))
+
+secrets/portus/certs: $(build)/portus.$(cert_base_name_external).tls-secret.yaml $(build)/portus.$(cert_base_name_internal).tls-secret.yaml | kubectl
+	$(KUBECTL) apply $(foreach f,$^, -f $(f))
 
 .PRECIOUS: $(build)/%.yaml
 $(build)/%.yaml: k8s/%.yaml.tmpl | sigil $(build)
@@ -66,11 +55,40 @@ $(build)/%.tls-secret.yaml: k8s/tls-secret.yaml.tmpl $(build)/tls/%.crt
 $(build)/tls/%.crt:
 	cd tls; make $@
 
-$(build)/bind_dn: | $(build)
+$(build)/portus-secret.yaml: k8s/portus-secret.yaml.tmpl $(build)/portus/app-password $(build)/portus/app-secret-key-base | kubectl
+	@password='$(shell cat $(build)/portus/app-password | base64)' \
+	  secret_key_base='$(shell cat $(build)/portus/app-secret-key-base | base64)' \
+	  $(SIGIL) -p -f $< > $@
+
+$(build)/registry-monitor-secret.yaml: k8s/registry-monitor-secret.yaml.tmpl $(build)/registry-monitor/username $(build)/registry-monitor/password | kubectl
+	@username='$(shell cat $(build)/registry-monitor/username | base64)' \
+	  password='$(shell cat $(build)/registry-monitor/password | base64)' \
+	  $(SIGIL) -p -f $< > $@
+
+$(build)/portus-db-secret.yaml: k8s/portus-db-secret.yaml.tmpl $(build)/portus/db-name $(build)/portus/db-hostname $(build)/portus/db-password $(build)/portus/db-username | kubectl
+	@db_name='$(shell cat $(build)/portus/db-name | base64)' \
+	  hostname='$(shell cat $(build)/portus/db-hostname | base64)' \
+	  password='$(shell cat $(build)/portus/db-password | base64)' \
+	  username='$(shell cat $(build)/portus/db-username | base64)' \
+	  $(SIGIL) -p -f $< > $@
+
+$(build)/portus-ldap-secret.yaml: k8s/portus-ldap-secret.yaml.tmpl $(build)/portus/bind_dn $(build)/portus/bind_password | kubectl
+	@bind_dn='$(shell cat $(build)/portus/bind_dn | base64)' \
+	  bind_password='$(shell cat  $(build)/portus/bind_password | base64)' \
+	  $(SIGIL) -p -f $< > $@
+
+$(build)/docker-registry-secret.yaml: k8s/docker-registry-secret.yaml.tmpl $(build)/docker/ha-shared-secret | kubectl
+	@ha_shared_secret='$(shell cat $(build)/docker/ha-shared-secret)' \
+	  $(SIGIL) -p -f $< > $@
+
+$(build)/docker/ha-shared-secret: | $(build)/docker
+	@openssl rand -hex 16 | tr -d '\n' > $@
+
+$(build)/portus/bind_dn: | $(build)/portus
 	@[[ -n "${LDAP_BIND_DN}" ]] || (echo "LDAP_BIND_DN must be set" && exit 1)
 	jq -nCMRr 'env.LDAP_BIND_DN' | tr -d '\n' > $@
 
-$(build)/bind_password: | $(build)
+$(build)/portus/bind_password: | $(build)/portus
 	@[[ -n "${LDAP_BIND_PASSWORD}" ]] || (echo "LDAP_BIND_PASSWORD must be set" && exit 1)
 	jq -nCMRr 'env.LDAP_BIND_PASSWORD' | tr -d '\n' > $@
 
@@ -86,31 +104,34 @@ $(build)/portus/db-password: $(build)/portus/mysql.tfstate
 $(build)/portus/db-username: $(build)/portus/mysql.tfstate
 	@$(TERRAFORM) output -state=$< username | tr -d '\n' > $@
 
-$(build)/portus/rds.tfstate: | $(build) # aws
-	@$(AWS) s3 cp s3://$(s3_bucket_name)/$(s3_path_app_remote_state_path)/rds.tfstate $@
-
-$(build)/portus/mysql.tfstate: | $(build) # aws
-	@$(AWS) s3 cp s3://$(s3_bucket_name)/$(s3_path_app_remote_state_path)/mysql.tfstate $@
-
 $(build)/portus/app-password: | $(build)
 	@printf 'p%s' "$$(openssl rand -hex 16)" | tr -d '\n' > $@
 
 $(build)/portus/app-secret-key-base: | $(build)
 	@printf 'p%s' "$$(openssl rand -hex 16)" | tr -d '\n' > $@
 
-$(build)/docker/ha-shared-secret: | $(build)
-	@openssl rand -hex 16 | tr -d '\n' > $@
+$(build)/portus/rds.tfstate: | $(build)/portus # aws
+	@$(AWS) s3 cp s3://$(s3_bucket_name)/$(s3_path_app_remote_state_path)/rds.tfstate $@
 
-$(build)/registry-monitor/password: | $(build)
-	@[[ -n "${REGISTRY_MONITOR_PASSWORD}" ]] || (echo "REGISTRY_MONITOR_PASSWORD must be set" && exit 1)
-	jq -nCMRr 'env.REGISTRY_MONITOR_PASSWORD' | tr -d '\n' > $@
+$(build)/portus/mysql.tfstate: | $(build)/portus # aws
+	@$(AWS) s3 cp s3://$(s3_bucket_name)/$(s3_path_app_remote_state_path)/mysql.tfstate $@
 
-$(build)/registry-monitor/username: | $(build)
+$(build)/registry-monitor/username: | $(build)/registry-monitor
 	@[[ -n "${REGISTRY_MONITOR_USERNAME}" ]] || (echo "REGISTRY_MONITOR_USERNAME must be set" && exit 1)
 	jq -nCMRr 'env.REGISTRY_MONITOR_USERNAME' | tr -d '\n' > $@
 
-$(build):
+$(build)/registry-monitor/password: | $(build)/registry-monitor
+	@[[ -n "${REGISTRY_MONITOR_PASSWORD}" ]] || (echo "REGISTRY_MONITOR_PASSWORD must be set" && exit 1)
+	jq -nCMRr 'env.REGISTRY_MONITOR_PASSWORD' | tr -d '\n' > $@
+
+$(build) $(build)/portus $(build)/docker $(build)/registry-monitor:
 	mkdir -p $@
+
+clean/portus:
+	rm -rf $(build)/portus
+
+clean/docker:
+	rm -rf $(build)/docker
 
 clean:
 	rm -rf $(build)

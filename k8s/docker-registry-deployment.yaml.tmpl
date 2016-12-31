@@ -59,7 +59,7 @@ spec:
         - name: REGISTRY_HTTP_SECRET
           valueFrom:
             secretKeyRef:
-              name: docker-app
+              name: docker-registry
               key: ha-shared-secret
         ports:
         - containerPort: 5000
@@ -68,13 +68,13 @@ spec:
           limits:
             cpu: 100m
             memory: 100Mi
-        # readinessProbe:
-        #   httpGet:
-        #     path: /healthz
-        #     port: 5001
-        #     scheme: HTTP
-        #   initialDelaySeconds: 30
-        #   timeoutSeconds: 1
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 5000
+            scheme: HTTPS
+          initialDelaySeconds: 5
+          timeoutSeconds: 1
         volumeMounts:
         - mountPath: /etc/docker/registry
           name: config
@@ -94,7 +94,7 @@ spec:
       volumes:
       - name: config
         configMap:
-          name: docker
+          name: docker-registry
       - name: nord-ca-certs
         configMap:
           name: nord-ca-certs

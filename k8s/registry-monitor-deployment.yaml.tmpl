@@ -13,57 +13,30 @@ spec:
     metadata:
       labels:
         app: registry-monitor
-      annotations:
-        pod.beta.kubernetes.io/init-containers: |
-          [
-              {
-                  "name": "install-nord-ca-roots",
-                  "image": "quay.io/nordstrom/baseimage-ubuntu:16.04",
-                  "command": [
-                      "/bin/sh",
-                      "-c",
-                      "cat /tmp/nord-ca-certs/*.pem > /etc/ssl/certs/ca-certificates.crt"
-                  ],
-                  "volumeMounts": [
-                      {
-                          "name": "ca-certs",
-                          "mountPath": "/etc/ssl/certs"
-                      },
-                      {
-                          "name": "nord-ca-certs",
-                          "mountPath": "/tmp/nord-ca-certs",
-                          "readOnly": true
-                      }
-                  ]
-              }
-          ]
     spec:
       containers:
       - name: monitor
         image: quay.io/nordstrom/registry-monitor:0.0.1
         command:
-        - /bin/sh
-        - -c
-        args:
-        - >
-          exec /usr/bin/registry-monitor \
-            -username=\$(REGISTRY_MONITOR_USERNAME) \
-            -password=\$(REGISTRY_MONITOR_PASSWORD) \
-            -registry-host=docker.registry.${platform_domain_name?:"platform_domain_name must be set"} \
-            -repository=docker.registry.${platform_domain_name?:"platform_domain_name must be set"}/k8s/registry-monitor \
-            -base-layer-id=4f83eba78c
+        - /usr/bin/registry-monitor
+        - -username=\$(REGISTRY_MONITOR_USERNAME)
+        - -password=\$(REGISTRY_MONITOR_PASSWORD)
+        - -registry-host=docker.registry.${platform_domain_name?:platform_domain_name must be set}
+        - -repository=docker.registry.${platform_domain_name?:platform_domain_name must be set}/k8s/registry-monitor
+        # - -base-layer-id=\${registry_monitor_base_layer_id?:registry_monitor_base_layer_id must be set}
+        - -base-layer-id=4f83eba78c
         env:
         - name: UNDER_DOCKER
           value: "true"
         - name: REGISTRY_MONITOR_USERNAME
           valueFrom:
             secretKeyRef:
-              name: registry-monitor-credentials
+              name: registry-monitor
               key: username
         - name: REGISTRY_MONITOR_PASSWORD
           valueFrom:
             secretKeyRef:
-              name: registry-monitor-credentials
+              name: registry-monitor
               key: password
         ports:
         - containerPort: 8000
